@@ -29,7 +29,7 @@ export type PersonalAccessState=ReturnType<typeof usePersonalAccess>;
 export function PersonalAccess({access}:{access:PersonalAccessState}) {
     const {user,keys,budget,error,refreshBudget}=access;
     const [code,setCode]=useState(''),[draft,setDraft]=useState(keys),[busy,setBusy]=useState(false),[notice,setNotice]=useState(''),[failure,setFailure]=useState('');
-    useEffect(()=>{setDraft(keys);},[keys]);
+    useEffect(()=>{setDraft(keys);},[user?.id]);
     useEffect(()=>{setCode('');setNotice('');setFailure('');},[user?.id]);
     const redeem=async()=>{
         if(!user||busy||!code.trim())return;
@@ -45,7 +45,7 @@ export function PersonalAccess({access}:{access:PersonalAccessState}) {
         <form className="personal-key-form" onSubmit={e=>{e.preventDefault();setFailure('');try{savePersonalKeys(draft);setNotice('个人密钥已保存到当前标签页会话。');}catch(e){setFailure((e as Error).message);}}}>
           <h3>{t('自备 API 密钥（可选）')}</h3><p className="fine">{t('支持自备 API 密钥，包括 Jev Official 和 DeepSeek。建议先在服务商设置消费上限。')}</p><p className="fine">{t('仅在当前浏览器会话保存；经服务器安全发送至服务商。费用由你的服务商收取。')}</p>
           <div className="form-grid">{(['jev','deepseek'] as const).map(provider=><label key={provider}>{t(provider==='jev'?'Jev API key':'DeepSeek API key')}<input type="password" autoComplete="off" spellCheck={false} value={draft[provider]} onChange={e=>setDraft({...draft,[provider]:e.target.value})}/></label>)}</div>
-          <p className="fine">{t('仅用于你授权的请求，不写入服务器文件、数据库或日志，也不供其他用户使用。')} {t('每个账号独立保存，退出登录即清除。')}</p><div className="inline-controls"><button className="secondary">{t('保存个人密钥')}</button><button className="text-button" type="button" onClick={()=>{savePersonalKeys({jev:'',deepseek:''});setNotice('个人密钥已清除。');}}>{t('清除密钥')}</button></div>
+          <p className="fine">{t('仅用于你授权的请求，不写入服务器文件、数据库或日志，也不供其他用户使用。')} {t('每个账号独立保存，退出登录即清除。')}</p><div className="inline-controls"><button className="secondary">{t('保存个人密钥')}</button><button className="text-button" type="button" onClick={()=>{const empty={jev:'',deepseek:''};setDraft(empty);savePersonalKeys(empty);setNotice('个人密钥已清除。');}}>{t('清除密钥')}</button></div>
         </form>
       </div>:<p className="fine">{t('登录后可兑换邀请码、使用个人密钥、获取建议和组局。')}</p>}
       {(failure||error)&&<p className="notice error" role="alert">{t(failure||error)}</p>}{notice&&<p className="fine" role="status">{t(notice)}</p>}

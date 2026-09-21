@@ -1,6 +1,10 @@
 # Verification instructions
 
-Verified on 2026-09-21: **555 backend and public-gateway tests passed; 26 frontend tests passed; TypeScript and the production build passed.** One existing Starlette deprecation warning remains. Browser checks passed at desktop and mobile sizes in English and Chinese, including the production bundle through the public subpath gateway.
+Verified on 2026-09-21: **567 backend and public-gateway tests passed; 26 frontend tests passed; TypeScript and the production build passed.** One existing Starlette deprecation warning remains. Browser checks passed at desktop and mobile sizes in English and Chinese, including the production bundle through the public subpath gateway.
+
+Browser regression checks also verify SNG live viewing advances to the next tournament while manual historical replay stays put, and switching accounts cannot type into an unfinished logout.
+
+Cash-reset tests cover the 2,000-unit threshold, conservation of each player's total funds, retired-seat exclusion, legacy policy preservation, active-hand cutover and restart without duplicate buy-ins.
 
 A regression test verifies lossless compact-JSON retry for the local endpoint’s explicit input-length rejection without changing decision inputs or cached decisions.
 

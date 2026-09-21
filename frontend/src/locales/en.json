@@ -644,5 +644,14 @@
   "修改端点、模型或协议时，请添加为新 Agent。": "Add a new agent to change its endpoint, model or API format.",
   "Jev Official 只需在上方填写密钥。OpenAI、Claude 或兼容服务请选择协议，再填写端点、模型名称和密钥；保存后可重复添加席位。": "For official Jev, enter your key above. For OpenAI, Claude or a compatible service, choose an API format and enter the endpoint, model name and key. Add the saved agent to multiple seats if you like.",
   "支持 API 基址或完整调用路径；兼容代理的路径前缀会保留。需要云厂商专有签名的接口暂不支持。": "Use an API base URL or a full request URL. Compatible gateway path prefixes are preserved. Cloud services requiring proprietary request signing are not supported.",
-  "开源代码与文档": "Source & documentation"
+  "开源代码与文档": "Source & documentation",
+  "总资金 10,000，买入 200，盲注 0.5/1。有人达到 2,000 时，手牌结束后统一结码至 200；买入资金不足则退出。": "Bankroll 10,000; buy-in 200; blinds 0.5/1. When a stack reaches 2,000, reset to 200 after the hand. Leave when unable to fund a buy-in.",
+  "自第 {0} 手起，按 {1} 筹码阈值结码、重新买入 {2}；累计盈亏保留，退出者不返场。": "From hand {0}: cash out at the {1} stack threshold and buy in for {2}. Net profit is retained; retired seats stay out.",
+  "一手结束后，在场任一玩家桌面筹码达到 {0}，则统一结码、重新买入 {1}；资金不足者退出，累计盈亏保留。": "After a hand, if any active stack reaches {0}, everyone cashes out and buys in for {1}. Unfunded seats leave; net profit is retained.",
+  "第 {0} 手后统一结码 · 查看下一手": "Table reset after hand {0} · View next hand",
+  "本手开始前已统一结码，仍有足够总资金的玩家重新买入 {0}；累计盈亏保留。": "The table was reset before this hand. Funded players bought in for {0}; net profit is retained.",
+  "启用筹码阈值结码，替代定期结码": "Stack-threshold resets replace periodic cash-outs",
+  "达到筹码上限，统一结码重新买入": "Stack threshold reached; table cashed out and rebought",
+  "筹码阈值结码重新买入": "Cash out and rebuy at stack threshold",
+  "结码阈值必须大于买入且为 0.5 的整数倍": "The reset threshold must exceed the buy-in and be a multiple of 0.5."
 }

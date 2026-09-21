@@ -78,6 +78,7 @@ class RunConfig(BaseModel):
     cash_small_blind: int = Field(default=50, ge=1)
     cash_big_blind: int = Field(default=100, ge=1)
     settle_every: int = Field(default=500, ge=1)
+    cash_reset_at: int | None = Field(default=None, gt=0)
     sng_starting_stack: int = Field(default=20000, ge=1)
     level_every: int = Field(default=200, ge=1)
     blind_levels: list[tuple[int, int, int]] = Field(default_factory=lambda: BLINDS.copy())
@@ -94,6 +95,8 @@ class RunConfig(BaseModel):
             raise ValueError("自组局必须有且仅有一个匹配的真人席位")
         if self.buy_in > self.bankroll:
             raise ValueError("买入不能超过总资产")
+        if self.cash_reset_at is not None and (self.cash_reset_at<=self.buy_in or self.cash_reset_at%50):
+            raise ValueError("结码阈值必须大于买入且为 0.5 的整数倍")
         if self.cash_small_blind > self.cash_big_blind:
             raise ValueError("小盲不能大于大盲")
         if len({e.id for e in self.entries}) != len(self.entries):

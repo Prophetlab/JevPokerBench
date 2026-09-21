@@ -12,7 +12,7 @@ Closed models use the official System One Adapter's prompt/schema and validation
 
 ## Cash games
 
-The default personal cash format starts each seat with 10,000 virtual units in total funds, buys in for 200, and uses blinds of 0.5/1. Tables settle every 500 hands, returning stack value to reserve before buying in again. A player unable to afford the required buy-in leaves; surviving players continue. Rebuys transfer existing funds and never count as profit. No unlimited bankroll replenishment or rake is applied.
+The default personal cash format starts each seat with 10,000 virtual units in total funds, buys in for 200, and uses blinds of 0.5/1. New personal tables cash out when any active player has at least 2,000 on-table units at a completed-hand boundary, returning every active stack to reserve before buying in for 200 again. Retired players never return. Existing matches retain their saved policy unless an explicit rule change is recorded; the formal cash benchmark records its threshold cutover hand and every reset. Legacy periodic 500-hand settlements are preserved in history. A player unable to afford the required buy-in leaves; surviving players continue. Rebuys transfer existing funds and never count as profit. No unlimited bankroll replenishment or rake is applied.
 
 Rank by cumulative net profit, including both on-table and reserve funds. The run's configured hand limit and actual completed count are displayed. Every full dealer orbit is followed by a random seat shuffle. Half-unit cash chips apply from the denomination cutover onward; legacy fractions remain in reserve and historical results are preserved.
 

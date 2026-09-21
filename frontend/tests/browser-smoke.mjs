@@ -19,7 +19,7 @@ const seat=(id,i,extra={})=>({id,name:id,seat:i,stack:20000,bet:0,committed:100,
 const state={hand_number:1,street:'preflop',button:0,actor:'jev',complete:false,board:[],seats:entries.map((e,i)=>seat(e.id,i)),pot:300,pots:[{amount:300,eligible:entries.map(e=>e.id)}],small_blind:50,big_blind:100,ante:0,to_call:0,legal_actions:[{id:'check',kind:'check',label:'过牌',pay:0,to:0,all_in:false}]};
 const settled={...state,actor:null,complete:true,street:'complete',board:['As','7h','2c','Kd','3s'],legal_actions:[],seats:[seat('jev',0,{payoff:150}),seat('systemone',1,{payoff:-50}),seat('deepseek',2,{payoff:-100})]};
 const events=[{index:0,type:'deal',label:'准备开局',snapshot:state},{index:1,type:'action',label:'过牌',action:{player:'jev',id:'check',kind:'check',pay:0,to:0,all_in:false,label:'过牌'},snapshot:state},{index:2,type:'board',label:'公共牌 As 7h 2c',snapshot:{...state,street:'flop',board:['As','7h','2c']}},{index:3,type:'settlement',label:'本手结算',snapshot:settled}];
-const run={llm_adapter:{version:'0.2.0'},provider_retries:17,id:'benchmark',name:'Public benchmark',mode:'cash',created:1,status:'hand_limit',message:'已完成',hands_played:1,max_hands:1,active_hand:null,orbit:1,proxy:false,champion:null,entries,standings:entries.map((e,i)=>({id:e.id,name:e.name,stack:20000,profit:100-i*100,reserve:100000,equity:120000,rank:i+1,place:null,bb100:1,rebuys:0})),events:[],history:Array.from({length:15},(_,i)=>({hand:i,values:{jev:i*100,systemone:i*-60,deepseek:i*-40},ev_values:{jev:i*80,systemone:i*-40,deepseek:i*-40}})),big_blind:100,timing:{models:[]},highlights:[]};
+const run={cash_reset_at:200000,cash_reset_start_hand:1,buy_in:20000,llm_adapter:{version:'0.2.0'},provider_retries:17,id:'benchmark',name:'Public benchmark',mode:'cash',created:1,status:'hand_limit',message:'已完成',hands_played:1,max_hands:1,active_hand:null,orbit:1,proxy:false,champion:null,entries,standings:entries.map((e,i)=>({id:e.id,name:e.name,stack:20000,profit:100-i*100,reserve:100000,equity:120000,rank:i+1,place:null,bb100:1,rebuys:0})),events:[],history:Array.from({length:15},(_,i)=>({hand:i,values:{jev:i*100,systemone:i*-60,deepseek:i*-40},ev_values:{jev:i*80,systemone:i*-40,deepseek:i*-40}})),big_blind:100,timing:{models:[]},highlights:[]};
 const series={id:'series',status:'paused',message:'',target:5,completed:1,current_run_id:'benchmark',current_number:2,standings:entries.map((e,i)=>({...e,rank:i+1,mean_place:i+1,completed:1,wins:i===0?1:0}))};
 let user=null,invited=false,remaining=5,room=null,roomEvents=[],hand=1,retired=false,failLogout=false;
 const budget=()=>({invited,limit_cny:5,used_cny:5-remaining,remaining_cny:remaining,exhausted:remaining<=0});
@@ -70,6 +70,8 @@ try{
   assert.equal(await page.locator('a[href*="/export"]').count(),0);
   assert.equal(await page.locator('.audit-table[open]').count(),0);
   assert.equal(await page.locator('.award-watch').count(),2);
+  assert.ok((await page.locator('.cash-reset-note').innerText()).includes('2,000'));
+  assert.ok((await page.locator('.cash-reset-note').innerText()).includes('retired seats stay out'));
   for(const summary of await page.locator('main details>summary').all())if(await summary.isVisible())assert.ok((await summary.boundingBox()).height>=44);
   for(const button of await page.locator('.watch-table').all())if(await button.isVisible())assert.ok((await button.boundingBox()).height>=48);
   assert.ok(!/Adapter 0.2.0|17 retries|1.5×IQR/.test(await page.locator('main').innerText()));
@@ -122,5 +124,39 @@ try{
   await page.getByLabel('Language').selectOption('zh');await page.getByText('已登录：Bob',{exact:true}).waitFor();assert.ok(await page.getByLabel('Jev API 密钥').isVisible());await page.screenshot({animations:'disabled',path:'test-results/rooms-zh.png',fullPage:true});
   const forbiddenHeaders=requests.filter(r=>r.headers['x-jev-key']||r.headers['x-deepseek-key']||r.headers['x-agent-keys']);assert.ok(forbiddenHeaders.every(r=>r.method==='POST'&&['/api/rooms','/api/advisor/advise','/api/runs/personal-room/start','/api/rooms/personal-room/action'].includes(r.path)));
   assert.ok(requests.every(r=>!r.headers.authorization));assert.deepEqual(unexpected,[]);assert.deepEqual(errors,[]);
+  // Live series viewing follows a new tournament; manual historical replay stays put.
+  const livePage=await context.newPage();
+  let moved=false;
+  const oldSng={...run,id:'sng-old',mode:'sng',series_id:'series-live',status:'complete',cash_reset_at:null,cash_reset_start_hand:null};
+  const nextSng={...oldSng,id:'sng-new',status:'running',created:2,active_hand:1,hands_played:0};
+  const liveCash={...run,id:'cash-live',status:'running',hands_played:2,active_hand:3,cash_reset_start_hand:3,events:[{type:'cash_reset',hand:2,label:'达到筹码上限，统一结码重新买入'}]};
+  await livePage.route('**/api/**',async route=>{
+    const path=new URL(route.request().url()).pathname.replace(/^\/pokerbench(?=\/)/,'');
+    const send=value=>route.fulfill({contentType:'application/json',body:JSON.stringify(value)});
+    if(path==='/api/runs')return send([oldSng,liveCash]);
+    if(path==='/api/series')return send([{...series,id:'series-live',current_run_id:moved?'sng-new':'sng-old'}]);
+    if(path==='/api/runs/sng-new')return send(nextSng);
+    const active=path.includes('cash-live')?liveCash:path.includes('sng-new')?nextSng:oldSng;
+    if(path.endsWith('/stream'))return route.fulfill({contentType:'text/event-stream',body:'data: '+JSON.stringify(active)+'\n\n'});
+    if(path.endsWith('/hands'))return send([{number:active.active_hand||1,complete:!active.active_hand}]);
+    if(/\/hands\/\d+$/.test(path))return send({events,complete:false});
+    throw Error('Unexpected live fixture route '+path);
+  });
+  await livePage.goto(base+'/#replay/cash-live/3/live');
+  await livePage.locator('.cash-reset-note').waitFor();
+  assert.ok((await livePage.locator('.cash-reset-note').innerText()).includes('200'));
+  await livePage.getByLabel('Language').selectOption('en');
+  assert.ok((await livePage.locator('.cash-reset-note').innerText()).includes('bought in for 200'));
+  await livePage.goto(base+'/#replay/sng-old/1/live');
+  await livePage.getByRole('switch',{name:'Follow live',exact:true}).waitFor();moved=true;
+  await livePage.waitForURL('**/#replay/sng-new/1/live',{timeout:15000});
+  assert.ok(await livePage.getByRole('switch',{name:'Follow live',exact:true}).isChecked());
+  await livePage.locator('.replay-match-picker select').selectOption('sng-old');
+  await livePage.waitForTimeout(5500);
+  assert.ok(livePage.url().endsWith('#replay/sng-old/1'));
+  assert.equal(await livePage.getByRole('switch',{name:'Follow live',exact:true}).isChecked(),false);
+  await livePage.close();
   console.log('Public browser smoke passed: read-only benchmarks/replay, invites, billing, session isolation, repeated key delivery, sounds, winners, timeout retirement, English/Chinese and mobile.');
+}catch(error){
+  await page.screenshot({path:'test-results/browser-failure.png',fullPage:true});throw error;
 }finally{await browser.close();}

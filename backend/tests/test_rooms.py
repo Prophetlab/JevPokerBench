@@ -154,7 +154,7 @@ async def test_human_room_uses_existing_funded_rebuy_rules(tmp_path):
     runner=Runner(Store(str(tmp_path/'rules.sqlite')),OfflineModels())
     run,token=create_room(runner,RoomInput(model_ids=['bot']),[Entry(id='bot',name='Bot')])
     cfg=RunConfig.model_validate(run['config'])
-    assert cfg.bankroll==1000000 and cfg.buy_in==20000 and cfg.settle_every==500
+    assert cfg.bankroll==1000000 and cfg.buy_in==20000 and cfg.settle_every==500 and cfg.cash_reset_at==200000
     assert cfg.cash_small_blind==50 and cfg.cash_big_blind==100
     human=next(s for s in run['seats'] if s['id']=='human-player')
     bot=next(s for s in run['seats'] if s['id']=='opponent-1')

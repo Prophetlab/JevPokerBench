@@ -282,7 +282,16 @@ class Runner:
         if run['seats'][run['button']].get('retired'):
             self.next_button(run,cfg)
         if cfg.mode=="cash":
-            settle=run["hands_played"]>0 and run["hands_played"]%cfg.settle_every==0
+            if cfg.cash_reset_at is not None and 'cash_reset_start_hand' not in run:
+                run['cash_reset_start_hand']=run['hands_played']+1
+                run['events'].append({'type':'cash_reset_rule','hand':run['hands_played']+1,
+                    'threshold':cfg.cash_reset_at,'buy_in':cfg.buy_in,'label':'启用筹码阈值结码，替代定期结码'})
+            triggers=[s['id'] for s in run['seats'] if not s.get('retired') and cfg.cash_reset_at is not None and s['stack']>=cfg.cash_reset_at]
+            settle=bool(triggers) if cfg.cash_reset_at is not None else run["hands_played"]>0 and run["hands_played"]%cfg.settle_every==0
+            if settle and cfg.cash_reset_at is not None:
+                run['events'].append({'type':'cash_reset','hand':run['hands_played'],
+                    'threshold':cfg.cash_reset_at,'buy_in':cfg.buy_in,'triggered_by':triggers,
+                    'label':'达到筹码上限，统一结码重新买入'})
             for seat in run["seats"]:
                 if seat.get("retired"):
                     continue
@@ -300,7 +309,7 @@ class Runner:
                     seat["bought"]+=cfg.buy_in
                     seat["rebuys"]+=int(not settle)
                     run["events"].append({"type":"cashout" if settle else "rebuy","hand":run["hands_played"],
-                                          "player":seat["id"],"label":f"{cfg.settle_every} 手结码重新买入" if settle else "补码"})
+                                          "player":seat["id"],"label":("筹码阈值结码重新买入" if cfg.cash_reset_at is not None else f"{cfg.settle_every} 手结码重新买入") if settle else "补码"})
             active={s["id"] for s in run["seats"] if not s.get("retired") and s["stack"]>0}
             run["pending_dealers"]=sorted(set(run["pending_dealers"]) & active)
             if len(active)<2:
@@ -405,7 +414,7 @@ def public_run(run: dict, store: Store):
     exposed.update(timing=timing_summary(run),highlights=deepcopy(selected_highlights(run)),llm_adapter=deepcopy(run.get("llm_adapter",{"name":"legacy-custom"})),name=cfg["name"],mode=cfg["mode"],max_hands=cfg["max_hands"],
                    human_player_id=cfg.get("human_player_id"),billing_mode=cfg.get("billing_mode","hosted"),
                    series_id=run.get("series_id"),series_number=run.get("series_number"),
-                   settle_every=cfg["settle_every"],buy_in=cfg["buy_in"],
+                   settle_every=cfg["settle_every"],cash_reset_at=cfg.get("cash_reset_at"),buy_in=cfg["buy_in"],
                    ev_summary=run.get("ev_summary",{"covered_hands":0}),
                    small_blind=RunConfig.model_validate(cfg).blinds(run["hands_played"])[0],
                    big_blind=RunConfig.model_validate(cfg).blinds(run["hands_played"])[1],
@@ -416,4 +425,5 @@ def public_run(run: dict, store: Store):
     if cfg.get('human_player_id'):
         exposed['pending_kicks']=[row[0] for row in store.db.execute('SELECT player_id FROM room_kicks WHERE run_id=?',(run['id'],))]
     exposed["chip_rule_start_hand"]=run.get("chip_rule_start_hand")
+    exposed["cash_reset_start_hand"]=run.get("cash_reset_start_hand")
     return clean(exposed)

@@ -269,3 +269,89 @@ async def test_new_formal_hands_use_cash_chip_rule_only(runner,mode,expected_uni
     result=runner.store.run(run['id'])
     if mode=='cash':assert result['chip_rule_start_hand']==1
     else:assert 'chip_rule_start_hand' not in result
+
+
+@pytest.mark.parametrize('stack,reset',[(199950,False),(200000,True),(200050,True)])
+def test_cash_threshold_uses_completed_stack_not_reserve(runner,stack,reset):
+    cfg=RunConfig(cash_reset_at=200000);run=runner.create(cfg)
+    run['hands_played']=47
+    seat=run['seats'][0];seat['reserve']-=stack-seat['stack'];seat['stack']=stack
+    before=runner.point(run);history=deepcopy(run['history'])
+    assert runner.prepare(run,cfg)
+    assert bool([e for e in run['events'] if e['type']=='cash_reset'])==reset
+    assert run['seats'][0]['stack']==(cfg.buy_in if reset else stack)
+    assert runner.point(run)==before and run['history']==history
+    assert run['cash_reset_start_hand']==48
+    once=deepcopy(run)
+    assert runner.prepare(run,cfg) and run==once
+
+
+def test_threshold_replaces_500_hand_reset_and_never_revives_retired_seats(runner):
+    cfg=RunConfig(cash_reset_at=200000);run=runner.create(cfg);run['hands_played']=500
+    run['seats'][0]['stack']+=500;run['seats'][1]['stack']-=500
+    assert runner.prepare(run,cfg)
+    assert run['seats'][0]['stack']==20500
+    assert not any(e['type']=='cashout' for e in run['events'])
+    # A retired seat's reserve is deliberately sufficient: retirement is final.
+    retired=run['seats'][-1];retired['retired']=True;retired['reserve']+=retired['stack'];retired['stack']=0
+    poor=run['seats'][-2];poor['reserve']=0;poor['stack']=150
+    winner=run['seats'][0];winner['reserve']-=200000-winner['stack'];winner['stack']=200000
+    before={s['id']:s['stack']+s['reserve'] for s in run['seats']};history=deepcopy(run['history']);gone=deepcopy(retired)
+    assert runner.prepare(run,cfg)
+    assert retired==gone and retired['id'] not in run['pending_dealers']
+    assert poor['retired'] and poor['stack']==0 and poor['reserve']==150
+    assert all(s['stack']==cfg.buy_in for s in run['seats'] if not s.get('retired'))
+    assert all(s['rebuys']==0 for s in run['seats'])
+    assert {s['id']:s['stack']+s['reserve'] for s in run['seats']}==before
+    assert run['history']==history
+    assert len([e for e in run['events'] if e['type']=='cash_reset'])==1
+    assert len([e for e in run['events'] if e['type']=='cash_reset_rule'])==1
+    assert sum(e['type']=='cash_exit' and e['player']==poor['id'] for e in run['events'])==1
+
+
+@pytest.mark.asyncio
+async def test_threshold_cutover_preserves_active_hand_and_resets_only_next_hand(runner):
+    cfg=RunConfig(max_hands=2);run=runner.create(cfg)
+    seat=run['seats'][0];seat['reserve']-=200000;seat['stack']+=200000
+    h=Hand(run['seats'],run['button'],cfg.blinds(0),cfg.seed+104729,1,'cash',chip_unit=50)
+    h.apply('fold');old=deepcopy(h.record())
+    run['active_hand']=1;run['config']['cash_reset_at']=200000
+    runner.store.save_run(run,h.record());runner.provider=OfflineProvider()
+    runner.start(run['id']);await runner.tasks[run['id']]
+    result=runner.store.run(run['id']);first=runner.store.hand(run['id'],1);second=runner.store.hand(run['id'],2)
+    assert result['status']=='complete' and result['hands_played']==2
+    assert first['spec']==old['spec'] and first['actions'][:len(old['actions'])]==old['actions']
+    assert first['events'][:len(old['events'])]==old['events']
+    assert all(s['stack']==cfg.buy_in for s in second['spec']['seats'])
+    assert result['cash_reset_start_hand']==2
+    assert [e['hand'] for e in result['events'] if e['type']=='cash_reset']==[1]
+    assert sum(s['stack']+s['reserve'] for s in result['seats'])==sum(s['initial'] for s in result['seats'])
+
+
+@pytest.mark.asyncio
+async def test_threshold_checkpoint_resume_does_not_repeat_buy_in(runner):
+    cfg=RunConfig(max_hands=12,cash_reset_at=200000);run=runner.create(cfg);run['hands_played']=11
+    seat=run['seats'][0];seat['reserve']-=180000;seat['stack']+=180000
+    assert runner.prepare(run,cfg)
+    hand=Hand(run['seats'],run['button'],cfg.blinds(11),cfg.seed+104729*12,12,'cash',chip_unit=50)
+    run['active_hand']=12;run['status']='running';runner.store.save_run(run,hand.record())
+    restored=Runner(runner.store,OfflineProvider());restored.start(run['id']);await restored.tasks[run['id']]
+    result=runner.store.run(run['id'])
+    assert result['hands_played']==12 and result['status']=='complete'
+    assert [e['hand'] for e in result['events'] if e['type']=='cash_reset']==[11]
+    assert all(s['bought']==2*cfg.buy_in for s in result['seats'])
+    assert len([e for e in result['events'] if e['type']=='cash_reset_rule'])==1
+
+
+def test_threshold_does_not_change_sng_or_legacy_policy(runner):
+    cfg=RunConfig(mode='sng',cash_reset_at=200000);run=runner.create(cfg)
+    run['seats'][0]['stack']=200000;before=deepcopy(run)
+    assert runner.prepare(run,cfg) and run==before
+    legacy=RunConfig.model_validate({})
+    assert legacy.cash_reset_at is None and legacy.settle_every==500
+
+
+@pytest.mark.parametrize('threshold',[0,19950,20000,20001,200025])
+def test_invalid_cash_threshold_is_rejected(threshold):
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):RunConfig(cash_reset_at=threshold)

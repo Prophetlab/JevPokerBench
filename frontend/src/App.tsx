@@ -45,6 +45,15 @@ export default function App() {
         const timer = setInterval(poll, 5000);
         return () => { cancelled = true; clearInterval(timer); };
     }, [runs.map(r => r.id).sort().join(',')]);
+    useEffect(()=>{
+        if(page!=='replay'||!location.hash.endsWith('/live')||!run?.series_id||run.status!=='complete')return;
+        const current=series.find(s=>s.id===run.series_id)?.current_run_id;
+        const next=runs.find(r=>r.id===current);
+        if(next&&next.id!==run.id){
+            const number=next.active_hand||next.hands_played||1;
+            setSelected(next.id);setHand(number);location.hash=`replay/${next.id}/${number}/live`;
+        }
+    },[page,run,series,runs]);
     const streamIds = [...new Set((page === 'overview' ? [latestMatch(runs, 'cash')?.id, latestMatch(runs, 'sng')?.id, ...runs.filter(r => r.status === 'running' && !r.human_player_id).map(r => r.id)] : [selected]).filter(Boolean))].join(',');
     useEffect(() => { const streams = streamIds.split(',').filter(Boolean).map(id => { const stream = new EventSource(`/api/runs/${id}/stream`); stream.onmessage = e => { const r = JSON.parse(e.data); setRuns(old => old.map(v => v.id === r.id ? r : v)); }; return stream; }); return () => streams.forEach(s => s.close()); }, [streamIds]);
     useEffect(() => { const readHash = () => { const parts = location.hash.slice(1).split('/'); if (['overview', 'replay', 'advisor', 'rooms'].includes(parts[0]))

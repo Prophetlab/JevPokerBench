@@ -32,9 +32,9 @@ export function Account({user}:{user:Player|null|undefined}) {
         <div className="account-tabs"><button className={!register?'selected':''} disabled={busy} onClick={()=>{setRegister(false);setError('');}}>{t('登录')}</button><button className={register?'selected':''} disabled={busy} onClick={()=>{setRegister(true);setError('');}}>{t('注册账号')}</button></div>
         <h2>{t(register?'创建你的玩家账号':'登录后使用个人功能')}</h2><p className="fine">{t('用 ID 和密码保存你的牌桌。每个账号独立管理自己的进度。')}</p>
         <form className="account-form" onSubmit={e=>{e.preventDefault();void submit();}}>
-          <label>{t('玩家 ID')}<input required maxLength={40} autoComplete="username" value={id} onChange={e=>setId(e.target.value)}/></label>
-          <label>{t('密码')}<input required type="password" minLength={register?8:1} maxLength={128} autoComplete={register?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)}/></label>
-          {register&&<label>{t('确认密码')}<input required type="password" minLength={8} maxLength={128} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>}
+          <label>{t('玩家 ID')}<input required disabled={busy} maxLength={40} autoComplete="username" value={id} onChange={e=>setId(e.target.value)}/></label>
+          <label>{t('密码')}<input required disabled={busy} type="password" minLength={register?8:1} maxLength={128} autoComplete={register?'new-password':'current-password'} value={password} onChange={e=>setPassword(e.target.value)}/></label>
+          {register&&<label>{t('确认密码')}<input required disabled={busy} type="password" minLength={8} maxLength={128} autoComplete="new-password" value={confirmation} onChange={e=>setConfirmation(e.target.value)}/></label>}
           <button className="primary" disabled={busy||user===undefined}>{t(busy?'请稍候…':register?'注册并登录':'登录')}</button>
         </form>{register&&<p className="fine">{t('ID 不区分大小写；密码至少 8 位。')}</p>}
       </>}{error&&<p className="notice error" role="alert">{t(error)}</p>}

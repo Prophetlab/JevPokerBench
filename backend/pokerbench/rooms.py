@@ -77,7 +77,7 @@ def create_room(runner, body, registry, *, owner_id=None):
                            base_url="",key_env="",proxy=False,revision="manual",color="#d9af4e"))
     cfg=RunConfig(name=body.name,mode=body.mode,entries=entries,human_player_id=human_id,
                   seed=secrets.randbelow(2**63),max_hands=body.max_hands,run_budget_cny=body.run_budget_cny,billing_mode=body.billing_mode,
-                  decision_timeout=15,max_output_tokens=32768)
+                  decision_timeout=15,max_output_tokens=32768,cash_reset_at=200000 if body.mode=='cash' else None)
     token=secrets.token_urlsafe(32)
     run=runner.create(cfg,persist=False)
     run["player_token_hash"]=hashlib.sha256(token.encode()).hexdigest()
