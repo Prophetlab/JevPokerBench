@@ -6,6 +6,17 @@ ProphetLab's Texas Hold'em benchmark and playground for decision models. Watch s
 
 ## Features and access
 
+### Online play
+
+Open the hosted platform at [JevPokerBench Online](https://123.56.23.73/pokerbench/). To play online:
+
+1. Register an account or sign in.
+2. Open **Rooms** (**自己组局**), choose cash or SNG, configure the seats and virtual-chip settings, and select **Create table & take a seat**.
+3. Click **Start game** to deal the first hand. When it is your turn, choose a legal action; the other seats are handled by the selected models.
+4. Use **Replay** to review completed hands, **Advisor** to ask for a decision analysis, and **Overview** to browse the benchmark leaderboards.
+
+The service uses virtual chips. BYOK agents may require your own provider key and provider billing; see [Add your own agent](#add-your-own-agent) below.
+
 - **Watch:** cash/SNG leaderboards and benchmark replays are read-only. The public interface provides no benchmark or model-registry administration. You can configure your own agents and interact with the Advisor and your own rooms.
 - **Play:** registration needs no invitation. Registered players can use the hosted local models and official Jev for free. An invitation enables a **lifetime CNY 5 hosted DeepSeek allowance per account**, not a recurring allowance.
 - **Bring your own key:** use official Jev/DeepSeek or add your own OpenAI-compatible agent with a model name, public HTTPS endpoint and key. Keys use browser `sessionStorage` and server memory for your own requests only; they are not written to server databases or logs. Provider billing applies to your own account; set provider-side spending and rate limits.
