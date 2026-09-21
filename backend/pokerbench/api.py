@@ -36,6 +36,20 @@ def create_app(settings: Settings | None = None):
     runner=Runner(store,provider)
     series_runner=SeriesRunner(runner)
     entries_file=ROOT/"config"/"entries.json"
+    rendered_matches={}
+
+    def match_snapshot(run):
+        # All spectators share rendering/accounting work for the same revision.
+        # User rooms are never cached across accounts.
+        if run['config'].get('human_player_id'):
+            return public_run(run,store),None
+        version=store.db.execute('SELECT updated FROM runs WHERE id=?',(run['id'],)).fetchone()[0]
+        cached=rendered_matches.get(run['id'])
+        if cached is None or cached[0]!=version:
+            payload=public_run(run,store)
+            cached=(version,payload,json.dumps(payload,ensure_ascii=False))
+            rendered_matches[run['id']]=cached
+        return cached[1:]
 
     @asynccontextmanager
     async def lifespan(app):
@@ -130,7 +144,7 @@ def create_app(settings: Settings | None = None):
 
     @app.get("/api/runs")
     async def list_runs():
-        return [public_run(r,store) for r in store.runs() if not r["config"].get("human_player_id")]
+        return [match_snapshot(r)[0] for r in store.runs() if not r["config"].get("human_player_id")]
 
     @app.get("/api/rooms/models")
     async def room_models():
@@ -261,7 +275,7 @@ def create_app(settings: Settings | None = None):
     async def get_run(run_id: str,request: Request):
         run=store.run(run_id)
         if run["config"].get("human_player_id"):room_owner(run,request)
-        return public_run(run,store)
+        return match_snapshot(run)[0]
 
     @app.post("/api/runs/{run_id}/start")
     async def start(run_id: str, request: Request):
@@ -341,7 +355,8 @@ def create_app(settings: Settings | None = None):
         async def events():
             last=None
             while not await request.is_disconnected():
-                body=json.dumps(public_run(store.run(run_id),store),ensure_ascii=False)
+                payload,serialized=match_snapshot(store.run(run_id))
+                body=serialized if serialized is not None else json.dumps(payload,ensure_ascii=False)
                 if body!=last:
                     yield f"data: {body}\n\n"
                     last=body

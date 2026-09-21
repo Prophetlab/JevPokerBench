@@ -21,6 +21,7 @@ class Store:
             CREATE TABLE IF NOT EXISTS decisions(id TEXT PRIMARY KEY, body TEXT);
             CREATE TABLE IF NOT EXISTS calls(id TEXT PRIMARY KEY, run_id TEXT, status TEXT,
               reserved REAL, charged REAL, created REAL, body TEXT);
+            CREATE INDEX IF NOT EXISTS calls_by_run ON calls(run_id);
         """)
         self.db.commit()
         setup_player_budget(self.db)

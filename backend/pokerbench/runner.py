@@ -203,6 +203,7 @@ class Runner:
                             continue
                         pending=self.provider.call(entry,request,
                             decision_id=did,run_id=run_id,run_budget=cfg.run_budget_cny,
+                            benchmark=not bool(cfg.human_player_id),
                             timeout=15 if cfg.human_player_id else cfg.decision_timeout,max_tokens=min(cfg.max_output_tokens,32768) if cfg.human_player_id else cfg.max_output_tokens,should_stop=lambda:run_id in self.stop,**({"key_override":keys[entry.credential_id or entry.provider]} if (entry.credential_id or entry.provider) in keys else {}))
                         decision=await asyncio.wait_for(pending,15) if cfg.human_player_id else await pending
                     except PlayerBudgetExceeded as exc:

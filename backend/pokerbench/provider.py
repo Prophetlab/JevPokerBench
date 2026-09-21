@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import time
 from copy import deepcopy
 from contextlib import asynccontextmanager
@@ -17,6 +18,7 @@ from .official_adapter import ADAPTER_METHOD, MeteredChatProvider, RetryableTran
 from .config import ROOT, Entry, Settings
 from .store import Store
 from .public_access import redact_key
+from .priority import PriorityPool
 
 
 class ProviderError(Exception):
@@ -85,18 +87,18 @@ def validate_answer(response: dict, request: dict, quantized: bool = False):
 class Provider:
     def __init__(self, settings: Settings, store: Store):
         self.settings,self.store=settings,store
-        self.semaphore=asyncio.Semaphore(128)
-        self.jev_semaphore=asyncio.Semaphore(128)
+        self.local_pool=PriorityPool()
+        self.jev_pool=PriorityPool()
         self.env_keys=dotenv_values(ROOT/".env")
 
     @asynccontextmanager
-    async def capacity(self,entry):
+    async def capacity(self,entry,*,benchmark=False):
         if entry.provider in ('deepseek','openai_compatible'):
             yield
         elif entry.provider=='jev':
-            async with self.jev_semaphore:yield
+            async with self.jev_pool.slot(priority=benchmark):yield
         else:
-            async with self.semaphore:yield
+            async with self.local_pool.slot(priority=benchmark):yield
 
     def key(self, entry: Entry):
         return os.getenv(entry.key_env) or {"DEEPSEEK_API_KEY":self.settings.deepseek_api_key,
@@ -106,7 +108,7 @@ class Provider:
         return bool(self.key(entry)) or entry.provider in ("systemone","openai_compatible") and not entry.key_env
 
     async def call(self, entry: Entry, request: dict, *, decision_id: str, run_id: str,
-                   run_budget: float=20, timeout: float=120, max_tokens: int=8192, should_stop=None, key_override: str | None=None):
+                   run_budget: float=20, timeout: float=120, max_tokens: int=8192, should_stop=None, key_override: str | None=None, benchmark: bool=False):
         request={**request,"model":entry.model}
         request_hash=hashlib.sha256(json.dumps(request,sort_keys=True).encode()).hexdigest()
         existing=self.store.decision(decision_id)
@@ -125,14 +127,14 @@ class Provider:
         if not key_override and not self.available(entry):
             raise ProviderError(f"缺少 {entry.key_env} 环境配置")
         if entry.provider in ("deepseek","openai_compatible"):
-            async with self.capacity(entry):
+            async with self.capacity(entry,benchmark=benchmark):
                 return await self._call_adapter(entry,request,key,request_hash,decision_id,run_id,
                                                 run_budget,timeout,max_tokens,should_stop,key_override is not None)
         payload=request
         url=entry.base_url.rstrip("/")+"/v1/systemone"
         # Conservative byte-based input token bound; rate is peak, includes thinking output.
         reserve=(len(json.dumps(payload).encode())+512)*entry.input_cny_per_million/1e6+max_tokens*entry.output_cny_per_million/1e6
-        async with self.capacity(entry):
+        async with self.capacity(entry,benchmark=benchmark):
             started=time.monotonic()
             attempts=[]
             total_cost=0.0
@@ -145,12 +147,21 @@ class Provider:
                 charge=None
                 raw={}
                 meta={"decision_id":decision_id,"attempt":attempt+1,"request":payload}
+                if payload is not request:
+                    meta["format_repair"]="lossless_compact_json_state"
                 retryable=True
                 try:
                     async with httpx.AsyncClient(timeout=timeout,trust_env=key_override is None) as client:
                         response=await client.post(url,json=payload,headers=headers)
                     if response.status_code!=200:
                         retryable=response.status_code in (408,429,500,502,503,504,529)
+                        if benchmark and entry.provider=="systemone" and response.status_code==422 and isinstance(payload.get("state"),(dict,list)):
+                            try:detail=response.json().get("detail","")
+                            except (ValueError,AttributeError):detail=""
+                            if isinstance(detail,str) and re.fullmatch(r"Row \S+: \d+ input tokens exceed limit \d+; no truncation allowed",detail):
+                                # The endpoint accepts JSON text; retain every value and cached input hash.
+                                payload={**request,"state":json.dumps(request["state"],ensure_ascii=False,separators=(",",":"))}
+                                retryable=True
                         raise ProviderError(f"模型端点返回 HTTP {response.status_code}")
                     raw=response.json()
                     if not isinstance(raw,dict):

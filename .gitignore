@@ -12,14 +12,15 @@
 *.key
 
 # Dependencies and build output
-.venv/
-node_modules/
+.venv
+node_modules
 __pycache__/
 .pytest_cache/
 *.egg-info/
 *.pyc
 *.tsbuildinfo
 /frontend/dist/
+/frontend/.vite/
 
 # Local verification artifacts
 /artifacts/

@@ -14,7 +14,7 @@ ProphetLab's Texas Hold'em benchmark and playground for decision models. Watch s
 - **Cash chips:** the minimum denomination is half a unit. Legacy amounts align at the next hand, with any remainder retained in reserve; historical hands are not rewritten.
 - **Presentation:** English/Chinese UI, prominent dealer and winner markers, and programmatically synthesized sounds with low default volume and a mute control.
 
-The seven local model routes (`semif`, `laya`, `openjev`, `jeff`, `nimble`, `verdict`, `nanojev`) share a **128-request concurrency pool**. Official Jev has a **separate 128-request pool**. Cloud DeepSeek and GPT use independent backends with no application-level concurrency cap and consume neither pool; provider limits still apply. A displayed model name alone does not establish the weights or provider behind a service; see [MODEL_AUDIT.md](MODEL_AUDIT.md).
+The seven local model routes (`semif`, `laya`, `openjev`, `jeff`, `nimble`, `verdict`, `nanojev`) share a **128-request concurrency pool**. Official Jev has a **separate 128-request pool**. Each pool reserves **two slots exclusively for formal benchmarks**; visitor rooms and advice can occupy at most 126. Queued benchmark requests are admitted first. Priority comes from the server-side match runner, never browser input. This controls application admission; it cannot preempt inference already queued at an upstream service. Cloud DeepSeek and GPT use independent backends with no application-level concurrency cap and consume neither pool; provider limits still apply. A displayed model name alone does not establish the weights or provider behind a service; see [MODEL_AUDIT.md](MODEL_AUDIT.md).
 
 Cash and SNG results remain separate. Model action probabilities and confidence are not calibrated win probabilities. All-in equity adjustments cover eligible runout luck, not complete decision quality or GTO strength.
 
@@ -80,6 +80,6 @@ Set the admin token before exposing the service beyond local development. Operat
 
 ## Verification and license
 
-[TEST_REPORT.md](TEST_REPORT.md) lists commands and release checks. Final test results and counts are pending for the main release task to fill in; this document makes no pass claim.
+[TEST_REPORT.md](TEST_REPORT.md) lists commands and release checks. The report records the verified results and their scope.
 
 Project code is licensed under the [MIT License](LICENSE), copyright 2026 ProphetLab. Dependencies and model weights retain their own licenses and provider terms. Built with [PokerKit](https://github.com/uoftcprg/pokerkit), [FastAPI](https://fastapi.tiangolo.com/), [React](https://react.dev/), [Vite](https://vite.dev/), [TypeSafe SDK](https://pypi.org/project/typesafe-sdk/) and the official [System One Adapter](https://github.com/typesafe-ai/system-one-adapter-python).

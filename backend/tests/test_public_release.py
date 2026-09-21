@@ -326,7 +326,7 @@ async def test_local_and_jev_have_separate_128_slots_while_cloud_calls_are_indep
                        key_env='JEV_API_KEY' if name=='jev' else 'DEEPSEEK_API_KEY',
                        input_cny_per_million=0,output_cny_per_million=0) for name,kind in kinds.items()}
     counts={name:0 for name in kinds}
-    limits={'local':128,'jev':128,'deepseek':129,'gpt':129}
+    limits={'local':126,'jev':126,'deepseek':129,'gpt':129}
     full={name:asyncio.Event() for name in kinds}
     release={name:asyncio.Event() for name in kinds}
     req={'state':{},'questions':{'action':{'type':'choice','criteria':{'fold':{},'call':{}}}}}
@@ -366,10 +366,10 @@ async def test_local_and_jev_have_separate_128_slots_while_cloud_calls_are_indep
             release[name].set()
             results=await asyncio.wait_for(asyncio.gather(*tasks[name]),5)
             assert len(results)==129 and all(r['answers']['action']['choice']=='call' for r in results)
-        assert counts['local']==counts['jev']==128
+        assert counts['local']==counts['jev']==126
         release['local'].set()
         await asyncio.wait_for(asyncio.gather(*tasks['local']),5)
-        assert counts['local']==129 and counts['jev']==128
+        assert counts['local']==129 and counts['jev']==126
         assert not any(task.done() for task in tasks['jev'])
         release['jev'].set()
         await asyncio.wait_for(asyncio.gather(*tasks['jev']),5)

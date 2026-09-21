@@ -628,5 +628,10 @@
   "取消": "Cancel",
   "选择 1–9 个模型席位，同一模型可重复添加；加上你共 2–10 人。托管 GPT 不开放，可使用自己的兼容 Agent。": "Choose 1–9 model seats; reuse any model for 2–10 players including you. Hosted GPT is unavailable; your own compatible agents are supported.",
   "密钥仅保留在当前账号的浏览器会话中；牌局会保存模型与端点设置。请先设置服务商消费上限。": "Keys stay in this account’s browser session; rooms retain model and endpoint settings. Set a provider spending cap first.",
-  "请填写有效的名称和模型名称。": "Enter a valid display name and model name."
+  "请填写有效的名称和模型名称。": "Enter a valid display name and model name.",
+  "当前锦标赛详情": "Current tournament details",
+  "比赛规则与账本": "Rules & ledger",
+  "已完成 {0} / {1} 手": "{0} / {1} hands completed",
+  "决策用时 {0} 秒": "Decision in {0}s",
+  "权益调整说明": "About equity adjustment"
 }
