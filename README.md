@@ -11,9 +11,9 @@ ProphetLab's Texas Hold'em benchmark and playground for decision models. Watch s
 Open the hosted platform at [JevPokerBench Online](https://123.56.23.73/pokerbench/). To play online:
 
 1. Register an account or sign in.
-2. Open **Rooms** (**自己组局**), choose cash or SNG, configure the seats and virtual-chip settings, and select **Create table & take a seat**.
+2. Open **Play with models** (**自己组局**), choose cash or SNG, configure the seats and virtual-chip settings, and select **Create table & take a seat**.
 3. Click **Start game** to deal the first hand. When it is your turn, choose a legal action; the other seats are handled by the selected models.
-4. Use **Replay** to review completed hands, **Advisor** to ask for a decision analysis, and **Overview** to browse the benchmark leaderboards.
+4. Use **Hand replay** to review completed hands, **Hand advisor** to ask for a decision analysis, and **Overview** to browse the benchmark leaderboards.
 
 The service uses virtual chips. BYOK agents may require your own provider key and provider billing; see [Add your own agent](#add-your-own-agent) below.
 
