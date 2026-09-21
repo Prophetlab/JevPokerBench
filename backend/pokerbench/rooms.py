@@ -4,7 +4,7 @@ import secrets
 from typing import Literal
 
 from fastapi import HTTPException
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, model_validator
 
 from .config import Entry, RunConfig
 from .engine import observer_record
@@ -15,16 +15,19 @@ class CustomAgent(BaseModel):
     name: str = Field(min_length=1,max_length=60)
     endpoint: str = Field(min_length=1,max_length=2048)
     model: str = Field(min_length=1,max_length=160)
+    api_format: Literal['chat_completions','responses','anthropic'] = 'chat_completions'
 
-    @field_validator('endpoint')
-    @classmethod
-    def endpoint_url(cls,value):
-        from .custom_endpoint import validate_endpoint
-        return validate_endpoint(value)
+    @model_validator(mode='after')
+    def endpoint_url(self):
+        from .custom_protocol import agent_endpoint
+        self.endpoint=agent_endpoint(self.endpoint,self.api_format)
+        if not self.name.strip() or not self.model.strip():
+            raise ValueError('Name and model cannot be blank.')
+        return self
 
     def entry(self):
         return Entry(id=self.id,name=self.name,provider='openai_compatible',model=self.model,
-            base_url=self.endpoint,key_env='',proxy=False,revision='user-supplied',credential_id=self.id,
+            base_url=self.endpoint,key_env='',proxy=False,revision='user-supplied',credential_id=self.id,api_format=self.api_format,
             input_cny_per_million=0,output_cny_per_million=0)
 
 

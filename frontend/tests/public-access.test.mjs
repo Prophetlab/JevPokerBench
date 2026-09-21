@@ -105,3 +105,11 @@ test('Custom keys resend by credential_id on room writes only, never bodies, hos
   await app.api('/api/rooms','POST',{billing_mode:'hosted'},{},{...options,billingMode:'hosted'});assert.equal(requests.at(-1).headers['X-Agent-Keys'],undefined);
   app.removeCustomAgent('custom-1');await assert.rejects(app.api('/api/rooms/r/action','POST',{}, {},options));
 });
+
+test('API formats accept matching complete routes and prevent changing a saved protocol',async()=>{
+  setup();await signIn();const base={id:'custom-protocol',name:'Model',model:'model'};
+  for(const [api_format,endpoint] of [['chat_completions','https://api.openai.com/v1/chat/completions'],['responses','https://api.openai.com/v1/responses'],['anthropic','https://api.anthropic.com/v1/messages']])assert.doesNotThrow(()=>app.validateCustomAgent({...base,api_format,endpoint},'test-key'));
+  assert.throws(()=>app.validateCustomAgent({...base,api_format:'anthropic',endpoint:'https://api.openai.com/v1/responses'},'test-key'),/协议/);
+  const agent={...base,endpoint:'https://api.openai.com/v1'};app.saveCustomAgent(agent,'test-key');
+  assert.throws(()=>app.saveCustomAgent({...agent,api_format:'responses'},'test-key'),/协议/);
+});

@@ -42,7 +42,7 @@ export function saveCustomAgent(agent:CustomAgent,key:string){
     if(!session.user)throw new Error('登录后才能保存个人密钥。');
     validateCustomAgent(agent,key);
     const existing=session.agents.find(a=>a.id===agent.id);
-    if(existing&&(existing.endpoint!==agent.endpoint||existing.model!==agent.model))throw new Error('修改端点或模型时，请添加为新 Agent。');
+    if(existing&&(existing.endpoint!==agent.endpoint||existing.model!==agent.model||(existing.api_format||'chat_completions')!==(agent.api_format||'chat_completions')))throw new Error('修改端点、模型或协议时，请添加为新 Agent。');
     if(!session.agentKeys[agent.id]&&Object.keys(session.agentKeys).length>=9)throw new Error('最多保存 9 个自定义 Agent。');
     session={...session,agents:existing?session.agents.map(a=>a.id===agent.id?agent:a):[...session.agents,agent],agentKeys:{...session.agentKeys,[agent.id]:key}};persist();
 }

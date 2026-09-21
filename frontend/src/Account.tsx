@@ -25,10 +25,10 @@ export function Account({user}:{user:Player|null|undefined}) {
     const logout=async()=>{
         setBusy(true);setError('');
         try{await api('/api/auth/logout','POST',{});setPassword('');setConfirmation('');}
-        catch(e){setError((e as Error).message);}finally{setBusy(false);}
+        catch{setError('退出未完成，请重试；此浏览器的登录会话可能仍有效。');await api('/api/auth/me').catch(()=>{});}finally{setBusy(false);}
     };
     return <section className="player-account" aria-label={t('玩家账号')}>
-      {user?<div className="account-signed-in"><div><strong>{t('已登录：{0}',user.id)}</strong><p className="fine">{t('最近 3 局随账号保存，换浏览器登录也能继续。')}</p></div><button className="secondary" disabled={busy} onClick={()=>void logout()}>{t('退出登录')}</button></div>:<>
+      {user?<div className="account-signed-in"><div><strong>{t('已登录：{0}',user.id)}</strong><p className="fine">{t('最近 3 局随账号保存，换浏览器登录也能继续。')}</p><p className="fine">{t('此浏览器会保持登录最多 30 天。共用设备使用后，请退出登录。')}</p></div><button className="secondary" disabled={busy} onClick={()=>void logout()}>{t('退出登录')}</button></div>:<>
         <div className="account-tabs"><button className={!register?'selected':''} disabled={busy} onClick={()=>{setRegister(false);setError('');}}>{t('登录')}</button><button className={register?'selected':''} disabled={busy} onClick={()=>{setRegister(true);setError('');}}>{t('注册账号')}</button></div>
         <h2>{t(register?'创建你的玩家账号':'登录后使用个人功能')}</h2><p className="fine">{t('用 ID 和密码保存你的牌桌。每个账号独立管理自己的进度。')}</p>
         <form className="account-form" onSubmit={e=>{e.preventDefault();void submit();}}>

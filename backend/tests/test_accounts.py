@@ -78,6 +78,24 @@ def test_login_throttles_password_guessing(client):
     assert result.status_code==429 and result.headers['retry-after']=='600'
 
 
+def test_trusted_gateway_visitor_ips_do_not_share_one_login_limit(client,monkeypatch):
+    from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+    import pokerbench.accounts as accounts
+    _,app,_=client
+    monkeypatch.setattr(accounts,'password_hash',lambda *args:'test-hash')
+    proxy=ProxyHeadersMiddleware(app,trusted_hosts=['127.0.0.1'])
+    c=TestClient(proxy,client=('127.0.0.1',1234))
+    def login(address,name):
+        return c.post('/api/auth/login',json={'id':name,'password':'wrong'},headers={'X-Forwarded-For':address})
+    for i in range(60):assert login('198.51.100.10',f'missing-{i}').status_code==401
+    assert login('198.51.100.10','blocked').status_code==429
+    assert login('198.51.100.11','another-user').status_code==401
+    direct=TestClient(proxy,client=('198.51.100.10',1234))
+    # An untrusted direct client cannot override its own rate-limit identity.
+    assert direct.post('/api/auth/login',json={'id':'direct','password':'wrong'},headers={'X-Forwarded-For':'198.51.100.12'}).status_code==429
+    c.close();direct.close()
+
+
 def test_account_rooms_restore_on_another_browser_without_seat_tokens(client):
     c,app,_=client;register(c)
     created=c.post('/api/rooms',json={'model_ids':['bot'],'player_name':'Spoofed'}).json()

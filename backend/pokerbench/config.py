@@ -49,6 +49,7 @@ class Entry(BaseModel):
     output_cny_per_million: float = Field(default=8.64, ge=0)
     revision: str = "unconfigured"
     credential_id: str | None = None
+    api_format: Literal['chat_completions', 'responses', 'anthropic'] = 'chat_completions'
     expected_model: str | None = None
     expected_revision: str | None = None
 

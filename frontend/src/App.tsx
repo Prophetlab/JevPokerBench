@@ -64,6 +64,6 @@ export default function App() {
     {page === 'replay' && (run ? <><label className="replay-match-picker">{t("回放比赛")}<select value={selected} onChange={e => { setSelected(e.target.value); setHand(1); location.hash = `replay/${e.target.value}/1`; }}>{runs.map(r => <option key={r.id} value={r.id}>{r.mode === 'cash' ? t("现金桌") : 'SNG'} · {r.name}</option>)}</select></label><Replay key={run.id} run={run} initialHand={hand} initialLive={location.hash.endsWith("/live")}/></> : <div className="empty-state">{t("比赛完成第一手后即可查看回放。")}</div>)}
     {page === 'rooms' && <Rooms runs={runs} onUpdate={r=>setRuns(old=>old.some(v=>v.id===r.id)?old.map(v=>v.id===r.id?r:v):[r,...old])}/>}
     {page === 'advisor' && <Advisor/>}
-    <footer><span>PROPHETLAB · JEV POKERBENCH</span><p>{t("记录真实动作，区分数学权益与模型判断。")}</p><small>{t("Cash & SNG \u00b7 Separate rankings")}</small></footer>
+    <footer><a className="source-link" href="https://github.com/Prophetlab/JevPokerBench" target="_blank" rel="noopener noreferrer">{t("开源代码与文档")} ↗</a><span>PROPHETLAB · JEV POKERBENCH</span><p>{t("记录真实动作，区分数学权益与模型判断。")}</p><small>{t("Cash & SNG \u00b7 Separate rankings")}</small></footer>
     </main></div></div>;
 }

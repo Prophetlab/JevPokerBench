@@ -633,5 +633,16 @@
   "比赛规则与账本": "Rules & ledger",
   "已完成 {0} / {1} 手": "{0} / {1} hands completed",
   "决策用时 {0} 秒": "Decision in {0}s",
-  "权益调整说明": "About equity adjustment"
+  "权益调整说明": "About equity adjustment",
+  "实时看牌桌": "Watch live table",
+  "查看牌桌回放": "Replay table",
+  "此浏览器会保持登录最多 30 天。共用设备使用后，请退出登录。": "Stay signed in on this browser for up to 30 days. Sign out when using a shared device.",
+  "退出未完成，请重试；此浏览器的登录会话可能仍有效。": "Sign-out did not complete. Please retry; this browser may still be signed in.",
+  "API 协议": "API format",
+  "请选择支持的 API 协议。": "Choose a supported API format.",
+  "端点路径与所选 API 协议不一致。": "The endpoint path does not match the selected API format.",
+  "修改端点、模型或协议时，请添加为新 Agent。": "Add a new agent to change its endpoint, model or API format.",
+  "Jev Official 只需在上方填写密钥。OpenAI、Claude 或兼容服务请选择协议，再填写端点、模型名称和密钥；保存后可重复添加席位。": "For official Jev, enter your key above. For OpenAI, Claude or a compatible service, choose an API format and enter the endpoint, model name and key. Add the saved agent to multiple seats if you like.",
+  "支持 API 基址或完整调用路径；兼容代理的路径前缀会保留。需要云厂商专有签名的接口暂不支持。": "Use an API base URL or a full request URL. Compatible gateway path prefixes are preserved. Cloud services requiring proprietary request signing are not supported.",
+  "开源代码与文档": "Source & documentation"
 }

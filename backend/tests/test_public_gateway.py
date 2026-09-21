@@ -522,3 +522,13 @@ def test_query_strings_and_security_headers_are_preserved(setup):
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
     assert "frame-ancestors 'none'" in response.headers["content-security-policy"]
+
+
+def test_gateway_overwrites_forwarded_address_with_its_verified_visitor(setup):
+    _,app,calls,_=setup
+    for address in ['198.51.100.10','198.51.100.11']:
+        client=TestClient(app,base_url=ORIGIN,client=(address,1234))
+        assert client.get('/api/auth/me',headers={'X-Forwarded-For':'127.0.0.1','X-Real-IP':'127.0.0.1'}).status_code==200
+        assert calls[-1].headers['x-forwarded-for']==address
+        assert 'x-real-ip' not in calls[-1].headers
+        client.close()

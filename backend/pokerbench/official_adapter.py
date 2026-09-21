@@ -71,6 +71,12 @@ class MeteredChatProvider:
         elif self.entry.reasoning_effort is not None:
             payload[self.entry.reasoning_parameter]=({"effort":self.entry.reasoning_effort}
                 if self.entry.reasoning_parameter=="reasoning" else self.entry.reasoning_effort)
+        base=self.entry.base_url or self.settings.deepseek_base_url
+        url=base.rstrip('/')+'/chat/completions'
+        headers={"Authorization":f"Bearer {self.key}"} if self.key else {}
+        if self.entry.credential_id:
+            from .custom_protocol import build_request
+            url,headers,payload=build_request(self.entry,payload,self.key)
         # Includes the official schema and any previous answer/correction messages.
         reserve=(len(json.dumps(payload).encode())+512)*self.entry.input_cny_per_million/1e6+self.max_tokens*self.entry.output_cny_per_million/1e6
         call_id=self.store.reserve(self.run_id,reserve,self.settings.pokerbench_budget_cny,self.run_budget,provider=self.entry.provider,self_funded=self.self_funded)
@@ -79,19 +85,21 @@ class MeteredChatProvider:
         self.attempts.append(item)
         started=time.monotonic()
         try:
-            base=self.entry.base_url or self.settings.deepseek_base_url
-            headers={"Authorization":f"Bearer {self.key}"} if self.key else {}
             if self.entry.credential_id:
                 from .custom_endpoint import custom_client
                 connection=custom_client(base,self.timeout)
             else:
                 connection=httpx.AsyncClient(timeout=self.timeout,trust_env=not self.self_funded)
             async with connection as client:
-                response=await client.post(base.rstrip("/")+"/chat/completions",json=payload,headers=headers)
+                response=await client.post(url,json=payload,headers=headers)
             if response.status_code!=200:
                 item["reason"]=f"模型端点返回 HTTP {response.status_code}"
                 raise TypeSafeAPIError(response.status_code,{},httpx2.Headers(),item["reason"])
             raw=response.json()
+            original_raw=raw
+            if self.entry.credential_id:
+                from .custom_protocol import chat_response
+                raw=chat_response(raw,self.entry.api_format)
             usage=raw.get("usage",{})
             usage=usage if isinstance(usage,dict) else {}
             inp,out=usage.get("prompt_tokens"),usage.get("completion_tokens")
@@ -99,7 +107,7 @@ class MeteredChatProvider:
             item.update(input_tokens=inp if known else None,output_tokens=out if known else None)
             if known:item["charge"]=(inp*self.entry.input_cny_per_million+out*self.entry.output_cny_per_million)/1e6
             self.served_model=raw.get("model") or self.model_name
-            item.update(model=self.served_model,raw_response=raw)
+            item.update(model=self.served_model,raw_response=original_raw)
             mismatch=identity_error(self.entry,raw)
             if mismatch:
                 item["reason"]=mismatch

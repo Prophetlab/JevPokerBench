@@ -37,6 +37,8 @@ ProphetLab 的德州扑克决策模型基准与交互平台。查看独立的现
 
 自定义 Agent 推理先直连，最多尝试三次；三次失败且运营方已配置代理时，再回退到该代理。添加 Agent 不发起付费推理探测；此重试策略仅用于用户实际请求的推理。
 
+协议与端点形式见 [API_COMPATIBILITY.md](API_COMPATIBILITY.md)，赛制、信息边界与权益调整见 [BENCHMARK.md](BENCHMARK.md)。
+
 ## 本地运行
 
 需要 Python 3.12+、Node.js 20.19+ 或 22.12+。从仓库根目录执行：

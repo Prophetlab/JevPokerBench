@@ -1,8 +1,14 @@
 # Verification instructions
 
-Verified on 2026-09-21: **533 backend and public-gateway tests passed; 25 frontend tests passed; TypeScript and the production build passed.** One existing Starlette deprecation warning remains. Browser checks passed at desktop and mobile sizes in English and Chinese, including the production bundle through the public subpath gateway.
+Verified on 2026-09-21: **555 backend and public-gateway tests passed; 26 frontend tests passed; TypeScript and the production build passed.** One existing Starlette deprecation warning remains. Browser checks passed at desktop and mobile sizes in English and Chinese, including the production bundle through the public subpath gateway.
 
 A regression test verifies lossless compact-JSON retry for the local endpoint’s explicit input-length rejection without changing decision inputs or cached decisions.
+
+Live public HTTPS checks verified independent accounts, anonymous sessions, refresh persistence, cookie security attributes and server-side logout revocation using disposable accounts; no model inference was requested. Production npm dependency audit reported no known vulnerabilities at this check.
+
+Custom protocol tests cover Chat Completions, Responses and Claude Messages, native authentication, URL prefixes, complete versus truncated/refused/tool responses and credential-free validation errors. These use mocks, not live provider compatibility claims.
+
+Trusted-proxy tests verify that one visitor exhausting an IP login limit does not block a different visitor, and that untrusted forwarded headers cannot change the rate-limit identity.
 
 Spectator tests also verify shared rendering for unchanged match revisions and immediate refresh after a persisted update.
 

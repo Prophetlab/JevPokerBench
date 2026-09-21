@@ -21,7 +21,7 @@ const settled={...state,actor:null,complete:true,street:'complete',board:['As','
 const events=[{index:0,type:'deal',label:'准备开局',snapshot:state},{index:1,type:'action',label:'过牌',action:{player:'jev',id:'check',kind:'check',pay:0,to:0,all_in:false,label:'过牌'},snapshot:state},{index:2,type:'board',label:'公共牌 As 7h 2c',snapshot:{...state,street:'flop',board:['As','7h','2c']}},{index:3,type:'settlement',label:'本手结算',snapshot:settled}];
 const run={llm_adapter:{version:'0.2.0'},provider_retries:17,id:'benchmark',name:'Public benchmark',mode:'cash',created:1,status:'hand_limit',message:'已完成',hands_played:1,max_hands:1,active_hand:null,orbit:1,proxy:false,champion:null,entries,standings:entries.map((e,i)=>({id:e.id,name:e.name,stack:20000,profit:100-i*100,reserve:100000,equity:120000,rank:i+1,place:null,bb100:1,rebuys:0})),events:[],history:Array.from({length:15},(_,i)=>({hand:i,values:{jev:i*100,systemone:i*-60,deepseek:i*-40},ev_values:{jev:i*80,systemone:i*-40,deepseek:i*-40}})),big_blind:100,timing:{models:[]},highlights:[]};
 const series={id:'series',status:'paused',message:'',target:5,completed:1,current_run_id:'benchmark',current_number:2,standings:entries.map((e,i)=>({...e,rank:i+1,mean_place:i+1,completed:1,wins:i===0?1:0}))};
-let user=null,invited=false,remaining=5,room=null,roomEvents=[],hand=1,retired=false;
+let user=null,invited=false,remaining=5,room=null,roomEvents=[],hand=1,retired=false,failLogout=false;
 const budget=()=>({invited,limit_cny:5,used_cny:5-remaining,remaining_cny:remaining,exhausted:remaining<=0});
 await page.route('**/api/**',async route=>{
   const req=route.request(),path=new URL(req.url()).pathname.replace(/^\/pokerbench(?=\/)/,''),method=req.method(),body=req.postData()?JSON.parse(req.postData()):null;
@@ -33,7 +33,7 @@ await page.route('**/api/**',async route=>{
   if(path==='/api/rooms/models')return send(models);
   if(path==='/api/auth/me')return send({user});
   if(path==='/api/auth/login'||path==='/api/auth/register'){user={id:body.id};return send({user});}
-  if(path==='/api/auth/logout'){user=null;return send({ok:true});}
+  if(path==='/api/auth/logout'){if(failLogout){failLogout=false;return send({detail:'offline'},503);}user=null;return send({ok:true});}
   if(path==='/api/auth/budget')return send(budget());
   if(path==='/api/auth/invite'){invited=true;return send(budget());}
   if(path==='/api/advisor/preview')return send({state,can_advise:true,math:{available:true,equity:.5,win:.45,tie:.1,ci95:[.48,.52],pot_odds:.2,samples:3000,assumption:'测试'}});
@@ -69,6 +69,9 @@ try{
   assert.equal(await page.locator('dialog,.modal,.registry,.player-directory').count(),0);
   assert.equal(await page.locator('a[href*="/export"]').count(),0);
   assert.equal(await page.locator('.audit-table[open]').count(),0);
+  assert.equal(await page.locator('.award-watch').count(),2);
+  for(const summary of await page.locator('main details>summary').all())if(await summary.isVisible())assert.ok((await summary.boundingBox()).height>=44);
+  for(const button of await page.locator('.watch-table').all())if(await button.isVisible())assert.ok((await button.boundingBox()).height>=48);
   assert.ok(!/Adapter 0.2.0|17 retries|1.5×IQR/.test(await page.locator('main').innerText()));
   assert.ok(!/API ¥|New match|Models & endpoints|Pause series|Continue series/.test(await page.locator('main').innerText()));
   assert.equal(await page.evaluate(()=>window.__audio.contexts),0);assert.equal(await page.getByLabel('Volume',{exact:true}).inputValue(),'12');
@@ -98,16 +101,17 @@ try{
   await nav('Clear keys');await page.getByText('Current input validated',{exact:true}).waitFor();assert.equal(await page.getByLabel('Funding mode').inputValue(),'personal');assert.equal(await page.getByRole('button',{name:'Get next-move advice',exact:true}).isDisabled(),true);
   await setKey('Jev','jev-browser-test');await setKey('DeepSeek','ds-browser-test');await setMode('hosted');await page.getByText('Current input validated',{exact:true}).waitFor();await nav('Get next-move advice');await page.locator('.model-advice .prob-list').waitFor();assert.equal(lastPost('/api/advisor/advise').headers['x-jev-key'],undefined);assert.equal(lastPost('/api/advisor/advise').body.billing_mode,'hosted');
   await nav('Play with models');await page.getByLabel('Funding mode').waitFor();await setMode('personal');await page.waitForFunction(()=>document.querySelector('output[aria-label="Jev Official seat count"]')?.textContent==='1');await page.getByRole('button',{name:'Add a DeepSeek seat',exact:true}).click();
-  await page.getByLabel('Agent display name').fill('My own GPT');await page.getByLabel('Model name',{exact:true}).fill('gpt-4.1');await page.getByLabel('Public HTTPS endpoint').fill('http://localhost');await page.getByLabel('Agent API key',{exact:true}).fill('custom-browser-key');await nav('Save agent');await page.getByRole('alert').filter({hasText:'public HTTPS'}).waitFor();
+  await page.getByLabel('API format',{exact:true}).selectOption('responses');await page.getByLabel('Agent display name').fill('My own GPT');await page.getByLabel('Model name',{exact:true}).fill('gpt-4.1');await page.getByLabel('Public HTTPS endpoint').fill('http://localhost');await page.getByLabel('Agent API key',{exact:true}).fill('custom-browser-key');await nav('Save agent');await page.getByRole('alert').filter({hasText:'public HTTPS'}).waitFor();
   await page.getByLabel('Public HTTPS endpoint').fill('https://api.openai.com/v1');await nav('Save agent');await page.getByRole('button',{name:'Add a My own GPT seat',exact:true}).click();
   await nav('Create table & take a seat');await page.getByRole('button',{name:'Start game',exact:true}).waitFor();
-  const create=lastPost('/api/rooms');assert.equal(create.body.custom_agents.length,1);const customId=create.body.custom_agents[0].id;assert.equal(create.body.model_ids.filter(id=>id===customId).length,2);assert.deepEqual(JSON.parse(create.headers['x-agent-keys']),{[customId]:'custom-browser-key'});assert.ok(!JSON.stringify(create.body).includes('custom-browser-key'));assert.equal(create.body.billing_mode,'personal');assert.equal(create.body.run_budget_cny,20);assert.equal(create.headers['x-jev-key'],'jev-browser-test');assert.equal(create.headers['x-deepseek-key'],'ds-browser-test');
+  const create=lastPost('/api/rooms');assert.equal(create.body.custom_agents.length,1);assert.equal(create.body.custom_agents[0].api_format,'responses');const customId=create.body.custom_agents[0].id;assert.equal(create.body.model_ids.filter(id=>id===customId).length,2);assert.deepEqual(JSON.parse(create.headers['x-agent-keys']),{[customId]:'custom-browser-key'});assert.ok(!JSON.stringify(create.body).includes('custom-browser-key'));assert.equal(create.body.billing_mode,'personal');assert.equal(create.body.run_budget_cny,20);assert.equal(create.headers['x-jev-key'],'jev-browser-test');assert.equal(create.headers['x-deepseek-key'],'ds-browser-test');
   await nav('Unmute sounds');await nav('Start game');await page.getByRole('button',{name:'Check',exact:true}).waitFor();await nav('Check');
   await page.getByRole('button',{name:'Next hand',exact:true}).waitFor();await nav('Next hand');await page.getByRole('button',{name:'Check',exact:true}).waitFor();await nav('Check');
   for(const req of requests.filter(r=>['/api/runs/personal-room/start','/api/rooms/personal-room/action'].includes(r.path))){assert.equal(req.headers['x-jev-key'],'jev-browser-test');assert.equal(req.headers['x-deepseek-key'],'ds-browser-test');assert.deepEqual(JSON.parse(req.headers['x-agent-keys']),{[customId]:'custom-browser-key'});}
   await page.getByRole('button',{name:'Next hand',exact:true}).waitFor();await page.waitForTimeout(100);const beforePoll=await page.evaluate(()=>window.__audio.tones);await page.waitForTimeout(1300);assert.equal(await page.evaluate(()=>window.__audio.tones),beforePoll);
   retired=true;await page.getByText('DeepSeek timed out 3 times · Left table',{exact:true}).last().waitFor();
   await page.screenshot({animations:'disabled',path:'test-results/personal-room.png',fullPage:true});
+  failLogout=true;await nav('Sign out');await page.getByRole('alert').filter({hasText:'Sign-out did not complete'}).waitFor();await page.getByText('Signed in as Alice',{exact:true}).waitFor();
   await nav('Sign out');assert.equal(await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('pokerbench-personal-keys:')).length),0);
   assert.equal(await page.locator('.rooms-page').count(),0);
   await page.getByLabel('Player ID',{exact:true}).fill('Bob');await page.getByLabel('Password',{exact:true}).fill('password123');await page.locator('.account-form').getByRole('button',{name:'Sign in',exact:true}).click();await page.getByText('Signed in as Bob',{exact:true}).waitFor();assert.equal(await page.getByLabel('Jev API key').inputValue(),'');

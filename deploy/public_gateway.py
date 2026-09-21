@@ -2,6 +2,7 @@
 from contextlib import asynccontextmanager
 import hashlib
 import hmac
+import ipaddress
 from http.cookies import CookieError, SimpleCookie
 import os
 from pathlib import Path
@@ -88,6 +89,14 @@ def create_app(*, upstream="http://127.0.0.1:8097", database=None, invite=None, 
             headers["cookie"] = f"{COOKIE}={session}"
         # This public entrance is HTTPS-only; never copy the caller's value.
         headers["x-forwarded-proto"] = "https"
+        # Overwrite caller headers with the peer resolved by the trusted ingress.
+        # Uvicorn accepts these only from this loopback gateway, so backend auth
+        # limits apply per visitor instead of to every user as one shared IP.
+        if request.client:
+            try:
+                headers['x-forwarded-for'] = str(ipaddress.ip_address(request.client.host))
+            except ValueError:
+                pass
         return headers
 
     async def send(request, path, body=None, streaming=False, method=None):

@@ -7,7 +7,6 @@ import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -69,10 +68,8 @@ def create_app(settings: Settings | None = None):
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request, exc):
-        if request.url.path.startswith('/api/auth/'):
-            # Validation failures must not echo a password from the submitted body.
-            return JSONResponse({'detail':[{k:e[k] for k in ('type','loc','msg')} for e in exc.errors()]},status_code=422)
-        return await request_validation_exception_handler(request,exc)
+        # Submitted endpoints and other invalid values can contain credentials too.
+        return JSONResponse({'detail':[{k:e[k] for k in ('type','loc','msg')} for e in exc.errors()]},status_code=422,headers={'Cache-Control':'no-store'})
 
     def entries():
         return [Entry.model_validate(e) for e in json.loads(entries_file.read_text())] if entries_file.exists() else default_entries()

@@ -8,7 +8,7 @@ import {PersonalAccess,PersonalAccessState,usePersonalAccess} from './PersonalAc
 import {clearPersonalSession,Player,saveCustomAgent,removeCustomAgent,saveRoomAgentKey} from './personalSession';
 import {BillingMode,modelAvailable,providerOf,Provider} from './modelAccess';
 import {PersonalRequest} from './api';
-import {CustomAgent} from './customAgents';
+import {ApiFormat,CustomAgent} from './customAgents';
 
 type RoomState={run:Run;record:{complete:boolean;events:GameEvent[]}|null;action_count:number;can_act:boolean};
 const tokenKey=(id:string)=>`pokerbench-player-${id}`;
@@ -21,22 +21,23 @@ export function Rooms({runs,onUpdate}:{runs:Run[];onUpdate:(run:Run)=>void}) {
     return <><PersonalAccess access={access}/>{access.user&&<PlayerRooms key={access.user.id} user={access.user} access={access} runs={runs} onUpdate={onUpdate}/>}</>;
 }
 function CustomAgents({access,onAdded}:{access:PersonalAccessState;onAdded:(id:string)=>void}){
-    const blank=()=>({id:'',name:'',endpoint:'',model:''});
+    const blank=():CustomAgent=>({id:'',name:'',endpoint:'',model:'',api_format:'chat_completions'});
     const [draft,setDraft]=useState<CustomAgent>(blank),[key,setKey]=useState(''),[error,setError]=useState('');
     const save=()=>{
         setError('');
         try{
-            const agent={id:draft.id||`custom-${crypto.randomUUID().slice(0,8)}`,name:draft.name.trim()||draft.model.trim().slice(0,60),endpoint:draft.endpoint.trim(),model:draft.model.trim()};
+            const agent={id:draft.id||`custom-${crypto.randomUUID().slice(0,8)}`,name:draft.name.trim()||draft.model.trim().slice(0,60),endpoint:draft.endpoint.trim(),model:draft.model.trim(),api_format:draft.api_format||'chat_completions'};
             saveCustomAgent(agent,key.trim());setDraft(blank());setKey('');if(!draft.id)onAdded(agent.id);
         }catch(e){setError((e as Error).message);}
     };
-    return <section className="custom-agents" aria-label={t('自己的 Agent')}><h3>{t('添加自己的 Agent')}</h3><p className="fine">{t('Jev Official 只需在上方填写密钥。其他兼容 OpenAI 的模型填写密钥、公开 HTTPS 端点和模型名称；保存后可重复添加席位。')}</p>
+    return <section className="custom-agents" aria-label={t('自己的 Agent')}><h3>{t('添加自己的 Agent')}</h3><p className="fine">{t('Jev Official 只需在上方填写密钥。OpenAI、Claude 或兼容服务请选择协议，再填写端点、模型名称和密钥；保存后可重复添加席位。')}</p>
       <form onSubmit={e=>{e.preventDefault();save();}}><div className="form-grid">
+        <label>{t('API 协议')}<select aria-label={t('API 协议')} disabled={!!draft.id} value={draft.api_format||'chat_completions'} onChange={e=>setDraft({...draft,api_format:e.target.value as ApiFormat})}><option value="chat_completions">OpenAI / Chat Completions</option><option value="responses">OpenAI / Responses</option><option value="anthropic">Claude / Messages</option></select></label>
         <label>{t('Agent 显示名称')}<input maxLength={60} value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})}/></label>
         <label>{t('模型名称')}<input required maxLength={160} readOnly={!!draft.id} value={draft.model} onChange={e=>setDraft({...draft,model:e.target.value})}/></label>
-        <label>{t('公开 HTTPS 端点')}<input type="url" required maxLength={2048} readOnly={!!draft.id} placeholder="https://api.provider.com/v1" value={draft.endpoint} onChange={e=>setDraft({...draft,endpoint:e.target.value})}/></label>
+        <label>{t('公开 HTTPS 端点')}<input type="url" required maxLength={2048} readOnly={!!draft.id} placeholder={draft.api_format==='anthropic'?'https://api.anthropic.com/v1':'https://api.openai.com/v1'} value={draft.endpoint} onChange={e=>setDraft({...draft,endpoint:e.target.value})}/></label>
         <label>{t('Agent API 密钥')}<input type="password" required autoComplete="off" spellCheck={false} maxLength={1024} value={key} onChange={e=>setKey(e.target.value)}/></label>
-      </div><p className="fine">{t('密钥仅保留在当前账号的浏览器会话中；牌局会保存模型与端点设置。请先设置服务商消费上限。')}</p><div className="inline-controls"><button className="secondary" disabled={!draft.id&&Object.keys(access.agentKeys).length>=9}>{t(draft.id?'更新 Agent 密钥':'保存 Agent')}</button>{draft.id&&<button className="text-button" type="button" onClick={()=>{setDraft(blank());setKey('');setError('');}}>{t('取消')}</button>}</div></form>
+      </div><p className="fine">{t('支持 API 基址或完整调用路径；兼容代理的路径前缀会保留。需要云厂商专有签名的接口暂不支持。')}</p><p className="fine">{t('密钥仅保留在当前账号的浏览器会话中；牌局会保存模型与端点设置。请先设置服务商消费上限。')}</p><div className="inline-controls"><button className="secondary" disabled={!draft.id&&Object.keys(access.agentKeys).length>=9}>{t(draft.id?'更新 Agent 密钥':'保存 Agent')}</button>{draft.id&&<button className="text-button" type="button" onClick={()=>{setDraft(blank());setKey('');setError('');}}>{t('取消')}</button>}</div></form>
       {error&&<p className="notice error" role="alert">{t(error)}</p>}
       <div className="saved-agents">{access.agents.map(agent=><div key={agent.id}><span><strong>{agent.name}</strong><small>{agent.model} · {new URL(agent.endpoint).hostname}</small></span><button className="secondary" onClick={()=>{setDraft(agent);setKey('');setError('');}}>{t('更新密钥')}</button><button className="text-button" onClick={()=>removeCustomAgent(agent.id)}>{t('移除')}</button></div>)}</div>
     </section>;
@@ -138,7 +139,6 @@ function PlayerRooms({user,access,runs,onUpdate}:{user:Player;access:PersonalAcc
     {legacy.length>0&&<details className="legacy-rooms"><summary>{t('导入此浏览器的旧牌局')}</summary><p className="fine">{t('绑定后，可用当前账号在其他浏览器继续；原有牌局进度不变。')}</p>{legacy.map(r=><div key={r.id}><span>{r.name} · {r.id.slice(-6)}</span><button className="secondary" disabled={busy} onClick={()=>void claim(r.id)}>{t('绑定到我的账号')}</button></div>)}</details>}
     {recentRooms.length>0&&<section className="recent-rooms" aria-label={t('我的牌局')}><h3>{t('我的牌局')}</h3><div>{recentRooms.map(r=><article className="room-card" key={r.id}><button className={!creating&&r.id===current?'selected':''} onClick={()=>choose(r.id)}><strong>{r.name}</strong><span>{t(r.mode==='cash'?'现金桌':'SNG 锦标赛')} · {t('已完成 {0} 手',r.hands_played)} · {r.entries.length} {t('席')}</span><small>{t(statusName[r.status]||r.status)} · {r.id.slice(-6)}</small><b>{t(r.status==='complete'?'查看牌局':'继续对局')} <ArrowUpRight size={14}/></b></button><button className="room-delete" disabled={busy||r.status==='running'} title={t(r.status==='running'?'请先暂停牌局再删除':'删除牌局')} onClick={()=>void remove(r)}><Trash2 size={13}/>{t('删除牌局')}</button></article>)}</div></section>}
     {error&&<p className="notice error" role="alert">{t(error)}</p>}
-    {creating&&<p className="notice personal-key-note">{t('支持自备 API 密钥，包括 Jev Official 和 DeepSeek。建议先在服务商设置消费上限。')} {t('仅在当前浏览器会话保存；经服务器安全发送至服务商。费用由你的服务商收取。')}</p>}
     <CustomAgents access={access} onAdded={id=>{if(creating){setBillingMode('personal');setSelected(old=>[...old.filter(existing=>access.agents.some(a=>a.id===existing)||models.some(e=>e.id===existing&&modelAvailable(e,'personal',access.budget,access.keys))),id].slice(0,9));}}}/>
     {creating&&<label className="billing-mode">{t('调用方式')}<select aria-label={t("调用方式")} value={billingMode} onChange={e=>setBillingMode(e.target.value as BillingMode)}><option value="hosted">{t('托管服务')}</option><option value="personal">{t('个人密钥')}</option></select><small>{t(billingMode==='personal'?'使用个人密钥时，调用费用由你的模型服务商账户承担。':'托管 DeepSeek 需要邀请且账户仍有余额。')}</small></label>}
     {creating&&available.length===0&&<p className="notice">{t(billingMode==='personal'?'请先保存对应的 Jev 或 DeepSeek 个人密钥。':'暂无可用模型，请稍后重试。')}</p>}

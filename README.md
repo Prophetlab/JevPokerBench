@@ -19,7 +19,7 @@ The service uses virtual chips. BYOK agents may require your own provider key an
 
 - **Watch:** cash/SNG leaderboards and benchmark replays are read-only. The public interface provides no benchmark or model-registry administration. You can configure your own agents and interact with the Advisor and your own rooms.
 - **Play:** registration needs no invitation. Registered players can use the hosted local models and official Jev for free. An invitation enables a **lifetime CNY 5 hosted DeepSeek allowance per account**, not a recurring allowance.
-- **Bring your own key:** use official Jev/DeepSeek or add your own OpenAI-compatible agent with a model name, public HTTPS endpoint and key. Keys use browser `sessionStorage` and server memory for your own requests only; they are not written to server databases or logs. Provider billing applies to your own account; set provider-side spending and rate limits.
+- **Bring your own key:** use official Jev/DeepSeek or add your own OpenAI-compatible or Claude agent with a model name, public HTTPS endpoint and key. Keys use browser `sessionStorage` and server memory for your own requests only; they are not written to server databases or logs. Provider billing applies to your own account; set provider-side spending and rate limits.
 - **Advisor:** Jev is the default. Edit a hand and action history to compare mathematical equity with model action preferences.
 - **Human rooms:** model requests time out after 15 seconds; the seat checks if legal, otherwise folds. A DeepSeek seat retires at hand end after three cumulative seat timeouts. The host can remove other model seats.
 - **Cash chips:** the minimum denomination is half a unit. Legacy amounts align at the next hand, with any remainder retained in reserve; historical hands are not rewritten.
@@ -31,11 +31,13 @@ Cash and SNG results remain separate. Model action probabilities and confidence 
 
 ## Add your own agent
 
-The easiest setup is the frontend **Add Agent** card. Choose official Jev or DeepSeek and enter your own key, or choose a custom OpenAI-compatible agent and enter its model name, endpoint and key. No operator API access is needed for this personal setup.
+The easiest setup is the frontend **Add Agent** card. Choose official Jev or DeepSeek and enter your own key, or choose a custom OpenAI-compatible or Claude agent and enter its model name, endpoint and key. No operator API access is needed for this personal setup.
 
 Official Jev/DeepSeek use fixed provider endpoints. Custom agents require public HTTPS endpoints; SSRF protection validates DNS, pins the approved address for the connection and blocks internal destinations. Requests carrying your key use HTTPS and are made only for you. Keys remain in browser `sessionStorage` and server memory, with no server persistence or logging. Use provider-side limits to control your own usage.
 
 Custom-agent inference tries the direct connection up to three times, then falls back to the operator-configured proxy if those attempts fail and a proxy is configured. Adding an agent does not issue paid inference probes; this retry policy applies only to requested inference.
+
+See [API_COMPATIBILITY.md](API_COMPATIBILITY.md) for Chat Completions, Responses, Claude Messages, accepted URL forms and cloud authentication limits. [BENCHMARK.md](BENCHMARK.md) describes scoring, information boundaries and equity adjustment.
 
 ## Local setup
 
@@ -87,7 +89,7 @@ curl --fail-with-body --request PUT \
   --data-binary @examples/entries.example.json
 ```
 
-Set the admin token before exposing the service beyond local development. Operator provider keys and administration credentials stay server-side and must not be embedded in frontend builds; user-supplied keys follow the BYOK flow above. The public source includes no deployed registry, `.env`, database, account records, or match data. Keep local `config/`, `data/`, logs and generated artifacts out of version control. See [SECURITY.md](SECURITY.md).
+Set the admin token before exposing the service beyond local development. Operator provider keys and administration credentials stay server-side and must not be embedded in frontend builds; user-supplied keys follow the BYOK flow above. The public source includes no deployed registry, `.env`, database, account records, or match data. Keep local `config/`, `data/`, logs and generated artifacts out of version control. Keep the backend and gateway on loopback behind a trusted HTTPS ingress. Trust forwarded headers only from the known proxy, never from arbitrary internet peers. See [SECURITY.md](SECURITY.md).
 
 ## Verification and license
 
