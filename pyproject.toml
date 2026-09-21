@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pokerbench"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = ["pokerkit==0.7.6", "fastapi==0.141.1", "uvicorn==0.53.0", "httpx==0.28.1", "httpcore==1.0.9", "pydantic-settings==2.15.0", "treys==0.1.8", "system-one-adapter==0.2.0", "typesafe-sdk==0.7.0"]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1", "pytest-asyncio==1.4.0"]
+
+[tool.setuptools.packages.find]
+where = ["backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["backend/tests"]
+pythonpath = ["backend"]
+asyncio_mode = "auto"

@@ -1,0 +1,24 @@
+[
+  {
+    "id": "jev",
+    "name": "Jev Official",
+    "color": "#176b54",
+    "provider": "jev",
+    "model": "jev-1.13.0",
+    "base_url": "https://api.typesafe.ai",
+    "key_env": "JEV_API_KEY",
+    "proxy": false
+  },
+  {
+    "id": "deepseek",
+    "name": "DeepSeek",
+    "color": "#4455ae",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "base_url": "https://api.deepseek.com",
+    "key_env": "DEEPSEEK_API_KEY",
+    "proxy": false,
+    "structured_outputs": false,
+    "reasoning_effort": "low"
+  }
+]

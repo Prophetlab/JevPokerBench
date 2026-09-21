@@ -1,0 +1,28 @@
+# Local credentials and runtime state
+.env
+.env.*
+!.env.example
+/config/
+/data/
+*.log
+*.pid
+*.sqlite*
+*.db
+*.pem
+*.key
+
+# Dependencies and build output
+.venv/
+node_modules/
+__pycache__/
+.pytest_cache/
+*.egg-info/
+*.pyc
+*.tsbuildinfo
+/frontend/dist/
+
+# Local verification artifacts
+/artifacts/
+/frontend/test-results/
+/frontend/playwright-report/
+.DS_Store
