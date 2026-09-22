@@ -1,6 +1,6 @@
 # Verification instructions
 
-Verified on 2026-09-21: **567 backend and public-gateway tests passed; 26 frontend tests passed; TypeScript and the production build passed.** One existing Starlette deprecation warning remains. Browser checks passed at desktop and mobile sizes in English and Chinese, including the production bundle through the public subpath gateway.
+Verified on 2026-09-22: **589 backend and public-gateway tests passed.** The unchanged frontend was verified on 2026-09-21: **26 frontend tests passed; TypeScript and the production build passed.** One existing Starlette deprecation warning remains. Browser checks passed at desktop and mobile sizes in English and Chinese, including the production bundle through the public subpath gateway.
 
 Browser regression checks also verify SNG live viewing advances to the next tournament while manual historical replay stays put, and switching accounts cannot type into an unfinished logout.
 
@@ -17,6 +17,8 @@ Trusted-proxy tests verify that one visitor exhausting an IP login limit does no
 Spectator tests also verify shared rendering for unchanged match revisions and immediate refresh after a persisted update.
 
 Model responses and high-concurrency traffic in these checks were mocked. They verify application behavior, key isolation and routing; they do not measure live model throughput. Custom-endpoint tests cover three direct TCP attempts before the configured proxy, pinned public addresses, TLS identity, and rejected private destinations.
+
+The independent analytics sidecar adds 22 tests for page-load filtering, daily visitor pseudonyms, incremental/rotated log ingestion, read-only account aggregates, stale-source handling and administrator authentication. Its dashboard passed desktop/mobile and English/Chinese browser checks.
 
 ## Automated checks
 

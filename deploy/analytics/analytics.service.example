@@ -1,0 +1,26 @@
+[Unit]
+Description=ProphetLab PokerBench read-only site analytics
+After=network.target
+
+[Service]
+User=YOUR_SERVICE_USER
+Group=YOUR_SERVICE_GROUP
+SupplementaryGroups=adm
+WorkingDirectory=/YOUR/ANALYTICS/DIRECTORY
+EnvironmentFile=/YOUR/ANALYTICS/DIRECTORY/.env
+ExecStart=/YOUR/VENV/bin/uvicorn service:from_env --factory --host 127.0.0.1 --port 8101 --no-access-log
+Restart=on-failure
+RestartSec=5
+UMask=0077
+Nice=15
+IOSchedulingClass=idle
+CPUQuota=10%
+MemoryMax=192M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/YOUR/ANALYTICS/DIRECTORY/data
+
+[Install]
+WantedBy=multi-user.target

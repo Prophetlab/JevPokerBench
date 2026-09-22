@@ -91,6 +91,8 @@ curl --fail-with-body --request PUT \
 
 Set the admin token before exposing the service beyond local development. Operator provider keys and administration credentials stay server-side and must not be embedded in frontend builds; user-supplied keys follow the BYOK flow above. The public source includes no deployed registry, `.env`, database, account records, or match data. Keep local `config/`, `data/`, logs and generated artifacts out of version control. Keep the backend and gateway on loopback behind a trusted HTTPS ingress. Trust forwarded headers only from the known proxy, never from arbitrary internet peers. See [SECURITY.md](SECURITY.md).
 
+Optional [private site analytics](deploy/analytics/README.md) runs as an independent read-only service, using retained access logs and account/table aggregates without restarting the game or public gateway.
+
 ## Verification and license
 
 [TEST_REPORT.md](TEST_REPORT.md) lists commands and release checks. The report records the verified results and their scope.

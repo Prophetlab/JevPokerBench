@@ -96,3 +96,5 @@ curl --fail-with-body --request PUT \
 [TEST_REPORT.md](TEST_REPORT.md) 记录自动测试、浏览器验证结果及其覆盖范围。
 
 项目代码采用 [MIT License](LICENSE)，版权归 2026 ProphetLab。依赖、模型权重及供应商服务分别遵循各自许可与条款。主要依赖包括 [PokerKit](https://github.com/uoftcprg/pokerkit)、[FastAPI](https://fastapi.tiangolo.com/)、[React](https://react.dev/)、[Vite](https://vite.dev/)、[TypeSafe SDK](https://pypi.org/project/typesafe-sdk/) 与官方 [System One Adapter](https://github.com/typesafe-ai/system-one-adapter-python)。
+
+可选的[私有网站统计](deploy/analytics/README.md)以独立只读服务运行，汇总保留的访问日志及账号、组局数据，无需重启比赛后端或公网网关。
